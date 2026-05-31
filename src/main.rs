@@ -16,10 +16,7 @@ use tao::{
 };
 use wry::WebViewBuilder;
 
-#[cfg(target_os = "windows")]
-use winapi::um::winuser::ShowWindow;
-#[cfg(target_os = "windows")]
-use winapi::um::winuser::SW_HIDE;
+
 
 fn main() {
     // ── Parse CLI argument ──────────────────────────────────────────────────
@@ -77,10 +74,10 @@ fn main() {
         .expect("Failed to create window");
 
     // Pre-load URL
-    let _webview = WebViewBuilder::new()
+    let _webview = WebViewBuilder::new(&window)
         .with_url(&url)
         .with_background_color((10, 11, 15, 255))
-        .build(&window)
+        .build()
         .expect("Failed to build WebView");
 
     // ── Event loop ──────────────────────────────────────────────────────────

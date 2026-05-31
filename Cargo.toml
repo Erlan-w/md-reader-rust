@@ -18,8 +18,6 @@ pulldown-cmark = { version = "0.12", features = ["html"] }
 rfd = "0.15"
 dirs = "5"
 
-[target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", features = ["shellapi", "winuser"] }
 
 [profile.release]
 opt-level = 3
