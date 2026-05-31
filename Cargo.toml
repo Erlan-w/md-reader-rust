@@ -1,0 +1,32 @@
+[package]
+name = "md-reader"
+version = "1.0.0"
+edition = "2021"
+description = "A fast, native Markdown reader with Mermaid diagram support"
+authors = ["MD Reader Contributors"]
+license = "MIT"
+repository = "https://github.com/your-username/md-reader"
+
+[[bin]]
+name = "md-reader"
+path = "src/main.rs"
+
+[dependencies]
+wry = { version = "0.43", features = [] }
+tao = { version = "0.30", features = ["rwh_06"] }
+pulldown-cmark = { version = "0.12", features = ["html"] }
+rfd = "0.15"
+dirs = "5"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["shellapi", "winuser"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 0

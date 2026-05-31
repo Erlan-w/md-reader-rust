@@ -1,0 +1,170 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v1.0.0)"
+        required: false
+        default: "dev"
+
+permissions:
+  contents: write
+
+jobs:
+  # ── Windows ─────────────────────────────────────────────────────────────────
+  build-windows:
+    name: Windows x86_64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Cargo registry & build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: windows-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: windows-cargo-
+
+      - name: Build release binary
+        run: cargo build --release --target x86_64-pc-windows-msvc
+
+      - name: Package artifact
+        run: |
+          mkdir dist-pkg
+          copy target\x86_64-pc-windows-msvc\release\md-reader.exe dist-pkg\
+          # Download mermaid.min.js for offline use
+          Invoke-WebRequest -Uri "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" -OutFile dist-pkg\mermaid.min.js
+          Compress-Archive -Path dist-pkg\* -DestinationPath md-reader-windows-x86_64.zip
+        shell: pwsh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: md-reader-windows-x86_64
+          path: md-reader-windows-x86_64.zip
+
+  # ── Linux x86_64 ────────────────────────────────────────────────────────────
+  build-linux:
+    name: Linux x86_64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            pkg-config \
+            libssl-dev
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: linux-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: linux-cargo-
+
+      - name: Build release binary
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+
+      - name: Package artifact
+        run: |
+          mkdir dist-pkg
+          cp target/x86_64-unknown-linux-gnu/release/md-reader dist-pkg/
+          curl -sSL "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" -o dist-pkg/mermaid.min.js
+          tar -czf md-reader-linux-x86_64.tar.gz -C dist-pkg .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: md-reader-linux-x86_64
+          path: md-reader-linux-x86_64.tar.gz
+
+  # ── macOS (Apple Silicon + Intel universal) ──────────────────────────────────
+  build-macos:
+    name: macOS Universal
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable (both targets)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: macos-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: macos-cargo-
+
+      - name: Build release binaries (both arches)
+        run: |
+          cargo build --release --target aarch64-apple-darwin
+          cargo build --release --target x86_64-apple-darwin
+
+      - name: Create universal binary with lipo
+        run: |
+          mkdir -p dist-pkg
+          lipo -create \
+            target/aarch64-apple-darwin/release/md-reader \
+            target/x86_64-apple-darwin/release/md-reader \
+            -output dist-pkg/md-reader
+          curl -sSL "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" -o dist-pkg/mermaid.min.js
+          tar -czf md-reader-macos-universal.tar.gz -C dist-pkg .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: md-reader-macos-universal
+          path: md-reader-macos-universal.tar.gz
+
+  # ── Release ──────────────────────────────────────────────────────────────────
+  release:
+    name: Create GitHub Release
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "MD Reader ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            artifacts/md-reader-windows-x86_64/md-reader-windows-x86_64.zip
+            artifacts/md-reader-linux-x86_64/md-reader-linux-x86_64.tar.gz
+            artifacts/md-reader-macos-universal/md-reader-macos-universal.tar.gz

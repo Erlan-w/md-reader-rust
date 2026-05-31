@@ -1,0 +1,6 @@
+# Cargo.lock will be generated automatically when you run:
+#   cargo build
+# or
+#   cargo generate-lockfile
+#
+# Commit Cargo.lock for binary applications (recommended for reproducible builds).
