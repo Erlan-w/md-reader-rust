@@ -1,3 +1,6 @@
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+
+mod install;
 mod markdown;
 mod template;
 
@@ -19,6 +22,13 @@ use wry::WebViewBuilder;
 
 
 fn main() {
+    // ── Subcommand dispatch ─────────────────────────────────────────────────
+    match env::args().nth(1).as_deref() {
+        Some("install") => return install::install(),
+        Some("uninstall") => return install::uninstall(),
+        _ => {}
+    }
+
     // ── Parse CLI argument ──────────────────────────────────────────────────
     let md_path: PathBuf = match env::args().nth(1) {
         Some(p) => PathBuf::from(p),
@@ -127,7 +137,8 @@ fn build_page(md_path: &Path) -> Result<String, Box<dyn std::error::Error>> {
         .replace("__FILENAME__", &html_escape(&filename))
         .replace("__MERMAID_SRC__", &mermaid_src)
         .replace("__WORD_COUNT__", &format!("{}", word_count))
-        .replace("__READ_TIME__", &format!("{}", read_time));
+        .replace("__READ_TIME__", &format!("{}", read_time))
+        .replace("__VERSION__", env!("CARGO_PKG_VERSION"));
 
     Ok(page)
 }
@@ -147,7 +158,12 @@ fn get_mermaid_src(md_path: &Path) -> String {
         if let Some(dir) = exe.parent() {
             let local = dir.join("dist").join("mermaid.min.js");
             if local.exists() {
-                return format!("file://{}", local.to_string_lossy().replace('\\', "/"));
+                return file_url(&local);
+            }
+            // 1b. Development: target/{debug,release}/ → ../../src/dist/
+            let dev = dir.join("../../src/dist").join("mermaid.min.js");
+            if dev.exists() {
+                return file_url(&dev);
             }
         }
     }
@@ -156,7 +172,7 @@ fn get_mermaid_src(md_path: &Path) -> String {
     if let Some(dir) = md_path.parent() {
         let local = dir.join("dist").join("mermaid.min.js");
         if local.exists() {
-            return format!("file://{}", local.to_string_lossy().replace('\\', "/"));
+            return file_url(&local);
         }
     }
 
@@ -167,12 +183,16 @@ fn get_mermaid_src(md_path: &Path) -> String {
             .join("dist")
             .join("mermaid.min.js");
         if local.exists() {
-            return format!("file://{}", local.to_string_lossy().replace('\\', "/"));
+            return file_url(&local);
         }
     }
 
-    // 4. Fallback CDN
+    // 4. Fallback CDN (defensive — never reached after install)
     "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js".to_string()
+}
+
+fn file_url(path: &Path) -> String {
+    format!("file://{}", path.to_string_lossy().replace('\\', "/"))
 }
 
 /// Write the HTML to a temp cache file and return its path.

@@ -42,10 +42,9 @@ jobs:
 
       - name: Package artifact
         run: |
-          mkdir dist-pkg
+          mkdir dist-pkg\dist
           copy target\x86_64-pc-windows-msvc\release\md-reader.exe dist-pkg\
-          # Download mermaid.min.js for offline use
-          Invoke-WebRequest -Uri "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" -OutFile dist-pkg\mermaid.min.js
+          copy src\dist\mermaid.min.js dist-pkg\dist\
           Compress-Archive -Path dist-pkg\* -DestinationPath md-reader-windows-x86_64.zip
         shell: pwsh
 
@@ -93,9 +92,9 @@ jobs:
 
       - name: Package artifact
         run: |
-          mkdir dist-pkg
+          mkdir -p dist-pkg/dist
           cp target/x86_64-unknown-linux-gnu/release/md-reader dist-pkg/
-          curl -sSL "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" -o dist-pkg/mermaid.min.js
+          cp src/dist/mermaid.min.js dist-pkg/dist/
           tar -czf md-reader-linux-x86_64.tar.gz -C dist-pkg .
 
       - uses: actions/upload-artifact@v4
@@ -132,12 +131,12 @@ jobs:
 
       - name: Create universal binary with lipo
         run: |
-          mkdir -p dist-pkg
+          mkdir -p dist-pkg/dist
           lipo -create \
             target/aarch64-apple-darwin/release/md-reader \
             target/x86_64-apple-darwin/release/md-reader \
             -output dist-pkg/md-reader
-          curl -sSL "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" -o dist-pkg/mermaid.min.js
+          cp src/dist/mermaid.min.js dist-pkg/dist/
           tar -czf md-reader-macos-universal.tar.gz -C dist-pkg .
 
       - uses: actions/upload-artifact@v4

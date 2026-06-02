@@ -84,7 +84,13 @@ pub const HTML_TEMPLATE: &str = r#"<!DOCTYPE html>
     padding: 14px 20px 8px; font-size: 0.62rem; font-weight: 600;
     letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
   }
-  .toc { overflow-y: auto; flex: 1; padding-bottom: 16px; }
+  .toc { overflow-y: auto; flex: 1; padding-bottom: 0; }
+  .sidebar-footer {
+    padding: 10px 20px; border-top: 1px solid var(--border);
+    font-size: 0.6rem; color: var(--muted); flex-shrink: 0;
+    font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+    letter-spacing: 0.04em;
+  }
   .toc a {
     display: block; padding: 5px 20px;
     font-size: 0.78rem; color: var(--text-secondary);
@@ -396,6 +402,7 @@ pub const HTML_TEMPLATE: &str = r#"<!DOCTYPE html>
     </div>
     <div class="toc-header">Contents</div>
     <nav class="toc" id="toc"></nav>
+    <div class="sidebar-footer">v__VERSION__</div>
   </aside>
 
   <!-- Sidebar overlay for mobile -->

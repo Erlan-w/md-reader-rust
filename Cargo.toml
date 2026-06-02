@@ -1,11 +1,11 @@
 [package]
 name = "md-reader"
-version = "1.0.0"
-edition = "2021"
+version = "1.0.2"
+edition = "2026"
 description = "A fast, native Markdown reader with Mermaid diagram support"
-authors = ["MD Reader Contributors"]
+authors = ["Erlan-w"]
 license = "MIT"
-repository = "https://github.com/your-username/md-reader"
+repository = "https://github.com/Erlan-w/md-reader-rust"
 
 [[bin]]
 name = "md-reader"
@@ -18,6 +18,9 @@ pulldown-cmark = { version = "0.12", features = ["html"] }
 rfd = "0.15"
 dirs = "5"
 
+
+[target.'cfg(windows)'.build-dependencies]
+embed-resource = "2"
 
 [profile.release]
 opt-level = 3
